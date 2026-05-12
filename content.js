@@ -173,11 +173,16 @@
   let rootObserver = null;
 
   const getChromeStorage = () => {
-    if (typeof chrome === "undefined" || !chrome.storage?.local) {
+    try {
+      if (typeof chrome === "undefined" || !chrome.storage?.local) {
+        return null;
+      }
+
+      return chrome.storage.local;
+    } catch {
+      // Extension context was invalidated after reload
       return null;
     }
-
-    return chrome.storage.local;
   };
 
   const getHostname = () => (typeof location !== "undefined" ? location.hostname : "");
@@ -487,7 +492,12 @@
       return;
     }
 
-    storage.set({ [key]: value });
+    // Wrapped in try/catch to handle "Extension context invalidated" after reload
+    try {
+      storage.set({ [key]: value });
+    } catch {
+      // Extension was reloaded — this content script is orphaned, ignore silently
+    }
   };
 
   const persistSitePolicies = () => {
