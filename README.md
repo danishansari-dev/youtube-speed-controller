@@ -7,6 +7,9 @@ A lightweight Chrome extension that adds fast playback speed controls directly b
 - Native-feeling `- / speed / +` widget in YouTube's bottom-right player controls.
 - One-click and keyboard speed changes from `0.25x` to `10x` in `0.25x` steps.
 - Uses YouTube's native shortcuts: `Shift + .` increases speed and `Shift + ,` decreases speed.
+- Adds quick presets: `Alt + 1` through `Alt + 5` set `1x` through `5x`, and `Alt + 0` sets `10x`.
+- Adds `Shift + Backspace` reset, hold `X` temporary `2x` boost, `Shift + S` widget toggle, and `Shift + H` overlay toggle.
+- Supports `Ctrl + mouse wheel` over the player for `0.25x` speed changes.
 - Shows a YouTube-style centered speed overlay whenever playback speed changes.
 - Automatically follows YouTube's single-page navigation and reinserts itself when the player changes.
 - Remembers the last selected speed and applies it to the next video.
