@@ -4,10 +4,11 @@
   color: #fff;
   display: inline-flex;
   float: left;
+  gap: 1px;
   height: 100%;
   justify-content: center;
-  margin: 0 2px;
-  opacity: .95;
+  margin: 0 1px;
+  opacity: .98;
   padding: 0;
   text-shadow: 0 0 2px rgba(0, 0, 0, .65);
   transition: opacity .15s ease;
@@ -26,28 +27,38 @@
   appearance: none;
   background: transparent;
   border: 0;
-  border-radius: 2px;
+  border-radius: 18px;
   box-sizing: border-box;
   color: inherit;
   cursor: pointer;
   display: inline-flex;
-  font: 500 13px/1 Roboto, Arial, sans-serif;
-  height: 36px;
+  font: 600 12px/1 Roboto, Arial, sans-serif;
+  height: 32px;
   justify-content: center;
   letter-spacing: 0;
   margin: 0;
-  min-width: 24px;
+  min-width: 26px;
   outline: 0;
-  padding: 0 6px;
+  padding: 0;
+  touch-action: manipulation;
+  transition: background-color .12s ease, opacity .12s ease, transform .08s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .ytp-right-controls .ysc-speed-button:hover,
 .ytp-right-controls .ysc-speed-button:focus-visible {
-  background: rgba(255, 255, 255, .14);
+  background: rgba(255, 255, 255, .16);
 }
 
 .ytp-right-controls .ysc-speed-button:active {
-  background: rgba(255, 255, 255, .22);
+  background: rgba(255, 255, 255, .24);
+  transform: scale(.94);
+}
+
+.ytp-right-controls .ysc-speed-holding {
+  background: rgba(255, 255, 255, .24);
+  transform: scale(.94);
 }
 
 .ytp-right-controls .ysc-speed-button:disabled {
@@ -60,9 +71,23 @@
 }
 
 .ytp-right-controls .ysc-speed-rate {
-  font-size: 12px;
-  min-width: 46px;
-  padding: 0 5px;
+  background: rgba(255, 255, 255, .12);
+  border-radius: 13px;
+  font-size: 11px;
+  height: 26px;
+  min-width: 38px;
+  padding: 0 6px;
+}
+
+.ytp-right-controls .ysc-speed-rate:hover,
+.ytp-right-controls .ysc-speed-rate:focus-visible {
+  background: rgba(255, 255, 255, .2);
+}
+
+.ytp-right-controls .ysc-speed-icon {
+  display: block;
+  height: 15px;
+  width: 15px;
 }
 
 .ytp-right-controls .ysc-speed-widget-hidden {
@@ -128,15 +153,176 @@ body > .ysc-speed-toast-visible {
 
 @media (max-width: 560px) {
   .ytp-right-controls .ysc-speed-widget {
-    margin: 0 1px;
+    gap: 0;
+    margin: 0;
   }
 
   .ytp-right-controls .ysc-speed-button {
-    min-width: 21px;
-    padding: 0 4px;
+    min-width: 23px;
   }
 
   .ytp-right-controls .ysc-speed-rate {
-    min-width: 42px;
+    min-width: 34px;
+    padding: 0 4px;
   }
+}
+
+/* Universal floating widget (non-YouTube inline bar) */
+.ysc-speed-widget.ysc-speed-widget--floating {
+  align-items: center;
+  backdrop-filter: blur(20px) saturate(1.45);
+  -webkit-backdrop-filter: blur(20px) saturate(1.45);
+  border-radius: 12px;
+  bottom: auto;
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, .22),
+    inset 0 1px 0 rgba(255, 255, 255, .08);
+  box-sizing: border-box;
+  display: inline-flex;
+  gap: 1px;
+  max-width: calc(100vw - 20px);
+  opacity: 0;
+  padding: 3px 5px;
+  pointer-events: none;
+  position: fixed;
+  right: auto;
+  transform: translateY(6px) scale(0.96);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease,
+    visibility 0s linear 0.2s;
+  visibility: hidden;
+  z-index: 2147483645;
+}
+
+.ysc-speed-widget.ysc-speed-widget--floating.ysc-speed-widget--ambient {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease,
+    visibility 0s linear 0s;
+  visibility: visible;
+}
+
+.ysc-speed-widget.ysc-speed-widget--floating.ysc-speed-widget--ambient.ysc-speed-widget--fs {
+  transform: translateY(0) scale(1.06);
+}
+
+.ysc-speed-widget.ysc-speed-widget--floating.ysc-speed-widget-hidden {
+  display: none !important;
+}
+
+.ysc-speed-widget.ysc-speed-widget--floating[data-ysc-theme="dark"] {
+  background: rgba(14, 14, 18, .55);
+  border: 1px solid rgba(255, 255, 255, .1);
+  color: #f4f4f5;
+}
+
+.ysc-speed-widget.ysc-speed-widget--floating[data-ysc-theme="light"] {
+  background: rgba(255, 255, 255, .58);
+  border: 1px solid rgba(0, 0, 0, .06);
+  box-shadow:
+    0 4px 22px rgba(0, 0, 0, .12),
+    inset 0 1px 0 rgba(255, 255, 255, .65);
+  color: #111827;
+}
+
+.ysc-speed-widget.ysc-speed-widget--floating.ysc-speed-widget--vertical[data-ysc-theme="dark"] {
+  background: rgba(14, 14, 18, .62);
+}
+
+.ysc-speed-widget.ysc-speed-widget--floating .ysc-speed-button {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  box-sizing: border-box;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  font: 600 11px/1.2 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  height: 30px;
+  justify-content: center;
+  letter-spacing: 0;
+  margin: 0;
+  min-width: 28px;
+  outline: 0;
+  padding: 0 3px;
+  touch-action: manipulation;
+  transition: background-color 0.14s ease, transform 0.08s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ysc-speed-widget.ysc-speed-widget--floating.ysc-speed-widget--ambient.ysc-speed-widget--fs .ysc-speed-button {
+  font-size: 12px;
+  height: 32px;
+  min-width: 30px;
+}
+
+.ysc-speed-widget.ysc-speed-widget--floating[data-ysc-theme="dark"] .ysc-speed-button:hover,
+.ysc-speed-widget.ysc-speed-widget--floating[data-ysc-theme="dark"] .ysc-speed-button:focus-visible {
+  background: rgba(255, 255, 255, .1);
+}
+
+.ysc-speed-widget.ysc-speed-widget--floating[data-ysc-theme="light"] .ysc-speed-button:hover,
+.ysc-speed-widget.ysc-speed-widget--floating[data-ysc-theme="light"] .ysc-speed-button:focus-visible {
+  background: rgba(0, 0, 0, .05);
+}
+
+.ysc-speed-widget.ysc-speed-widget--floating .ysc-speed-button:active {
+  transform: scale(.94);
+}
+
+.ysc-speed-widget.ysc-speed-widget--floating .ysc-speed-holding {
+  transform: scale(.94);
+}
+
+.ysc-speed-widget.ysc-speed-widget--floating .ysc-speed-button:disabled {
+  cursor: default;
+  opacity: .35;
+}
+
+.ysc-speed-widget.ysc-speed-widget--floating .ysc-speed-rate {
+  background: rgba(127, 127, 127, .18);
+  border-radius: 9px;
+  font-size: 11px;
+  height: 28px;
+  min-width: 38px;
+  padding: 0 6px;
+}
+
+.ysc-speed-widget.ysc-speed-widget--floating.ysc-speed-widget--ambient.ysc-speed-widget--fs .ysc-speed-rate {
+  font-size: 12px;
+  height: 30px;
+  min-width: 40px;
+}
+
+.ysc-speed-widget.ysc-speed-widget--floating .ysc-speed-icon {
+  display: block;
+  height: 14px;
+  width: 14px;
+}
+
+.ysc-speed-widget.ysc-speed-widget--floating.ysc-speed-widget--ambient.ysc-speed-widget--fs .ysc-speed-icon {
+  height: 15px;
+  width: 15px;
+}
+
+.ysc-speed-toast[data-ysc-theme="light"] {
+  background: rgba(255, 255, 255, .94);
+  border: 1px solid rgba(0, 0, 0, .08);
+  color: #111827;
+  text-shadow: none;
+}
+
+.ysc-speed-toast[data-ysc-theme="light"] .ysc-speed-toast-label {
+  color: rgba(17, 24, 39, .72);
+}
+
+.ysc-speed-toast[data-ysc-theme="light"] .ysc-speed-toast-rate {
+  color: #111827;
 }
