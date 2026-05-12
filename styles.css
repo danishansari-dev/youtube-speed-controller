@@ -65,6 +65,10 @@
   padding: 0 5px;
 }
 
+.ytp-right-controls .ysc-speed-widget-hidden {
+  display: none;
+}
+
 .html5-video-player .ysc-speed-toast,
 body > .ysc-speed-toast {
   align-items: center;
