@@ -1,8 +1,9 @@
 "use strict";
 
-const SPEED_STEP = 0.25;
-const MIN_RATE = 0.25;
-const MAX_RATE = 10;
+// Use shared constants from constants.js (loaded before this script)
+const SPEED_STEP = globalThis.YSC_SPEED_STEP || 0.25;
+const MIN_RATE = globalThis.YSC_MIN_PLAYBACK_RATE || 0.25;
+const MAX_RATE = globalThis.YSC_MAX_PLAYBACK_RATE || 10;
 const DIAL_CIRCUMFERENCE = 402;
 const HOLD_DELAY_MS = 260;
 const HOLD_REPEAT_MS = 90;
@@ -10,27 +11,8 @@ const HOLD_REPEAT_MS = 90;
 const PRESETS = [0.25, 0.5, 1, 1.5, 2, 3, 5, 10];
 const STARTUP_SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4, 5, 7.5, 10];
 const DEFAULT_SHORTCUTS = globalThis.YSC_DEFAULT_SHORTCUTS || {};
-const STORAGE_KEYS = {
-  rate: "youtubeSpeedController.playbackRate",
-  enabled: "youtubeSpeedController.enabled",
-  widgetEnabled: "youtubeSpeedController.widgetHidden",
-  keyboardEnabled: "youtubeSpeedController.keyboardEnabled",
-  mouseWheelEnabled: "youtubeSpeedController.mouseWheelEnabled",
-  boostEnabled: "youtubeSpeedController.boostEnabled",
-  rememberPerChannel: "youtubeSpeedController.rememberPerChannel",
-  rememberGlobally: "youtubeSpeedController.rememberGlobally",
-  rememberPerSite: "youtubeSpeedController.rememberPerSite",
-  autoApplyPreferredSpeed: "youtubeSpeedController.autoApplyPreferredSpeed",
-  compactMode: "youtubeSpeedController.compactMode",
-  overlayEnabled: "youtubeSpeedController.toastHidden",
-  fullscreenOnlyControls: "youtubeSpeedController.fullscreenOnlyControls",
-  themeMode: "youtubeSpeedController.themeMode",
-  startupDefaultSpeed: "youtubeSpeedController.startupDefaultSpeed",
-  shortcuts: "youtubeSpeedController.shortcuts",
-  defaultNativeMode: "youtubeSpeedController.defaultNativeMode",
-  siteAccessMode: "youtubeSpeedController.siteAccessMode",
-  siteAccessList: "youtubeSpeedController.siteAccessList"
-};
+// Use the shared STORAGE_KEYS from constants.js — names now match actual storage semantics
+const STORAGE_KEYS = globalThis.YSC_STORAGE_KEYS || {};
 if (!globalThis.YSC_DEFAULT_SHORTCUTS) {
   console.error("[Video Speed Controller] Shared constants failed to load.");
 }
@@ -112,7 +94,8 @@ let suppressClick = false;
 let pollTimer = 0;
 
 const clampRate = (rate) => Math.min(MAX_RATE, Math.max(MIN_RATE, Math.round(Number(rate) / SPEED_STEP) * SPEED_STEP));
-const formatRate = (rate) => `${String(clampRate(rate)).replace(/\.?0+$/, "")}x`;
+// Use shared formatRate from constants.js, with local fallback
+const formatRate = globalThis.YSC_FORMAT_RATE || ((rate) => `${String(clampRate(rate)).replace(/\.?0+$/, "")}x`);
 
 const formatTime = (seconds) => {
   const value = Number(seconds);
@@ -290,12 +273,28 @@ const renderSettings = () => {
   for (const [key, title, subtitle] of SETTING_DEFS) {
     const label = document.createElement("label");
     label.className = "setting-toggle";
-    label.innerHTML = `
-      <input type="checkbox" ${state?.settings?.[key] ? "checked" : ""}>
-      <span class="mini-switch"></span>
-      <span class="setting-copy"><strong>${title}</strong><span>${subtitle}</span></span>
-    `;
-    label.querySelector("input").addEventListener("change", (event) => updateSetting(key, event.target.checked));
+
+    // Build DOM safely without innerHTML to prevent XSS if data ever becomes user-editable
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.checked = Boolean(state?.settings?.[key]);
+
+    const miniSwitch = document.createElement("span");
+    miniSwitch.className = "mini-switch";
+
+    const copy = document.createElement("span");
+    copy.className = "setting-copy";
+
+    const strong = document.createElement("strong");
+    strong.textContent = title;
+
+    const sub = document.createElement("span");
+    sub.textContent = subtitle;
+
+    copy.append(strong, sub);
+    label.append(input, miniSwitch, copy);
+
+    input.addEventListener("change", (event) => updateSetting(key, event.target.checked));
     els.settingsGrid.append(label);
   }
 
@@ -467,10 +466,14 @@ const updateSetting = async (key, value) => {
     }
   };
 
-  const storageKey = STORAGE_KEYS[key];
+  // Map inverted UI keys to their actual storage key names
+  const INVERTED_KEY_MAP = { widgetEnabled: "widgetHidden", overlayEnabled: "toastHidden" };
+  const mappedKey = INVERTED_KEY_MAP[key] || key;
+  const storageKey = STORAGE_KEYS[mappedKey];
 
   if (storageKey) {
-    saveLocal(storageKey, key === "widgetEnabled" || key === "overlayEnabled" ? !value : value);
+    // Widget and overlay use inverted semantics: UI shows "enabled", storage stores "hidden"
+    saveLocal(storageKey, INVERTED_KEY_MAP[key] ? !value : value);
   }
 
   renderState();
