@@ -2707,11 +2707,8 @@
 
       const hoveredPlayer = hovered?.closest?.(".html5-video-player");
 
-      if (hoveredPlayer && !isYouTubeWatchPlayer(hoveredPlayer) && widgetPlacement !== "floating") {
-        clearFloatingHideTimer();
-        floatingHoverActive = true;
-        placeFloatingWidget();
-        updateWidget(getCurrentRate());
+      // Don't place the widget on YouTube homepage/preview players at all
+      if (hoveredPlayer && !isYouTubeWatchPlayer(hoveredPlayer)) {
         return;
       }
 
