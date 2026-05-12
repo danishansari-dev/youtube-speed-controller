@@ -24,8 +24,7 @@
   },
   "permissions": [
     "activeTab",
-    "storage",
-    "tabs"
+    "storage"
   ],
   "content_scripts": [
     {
@@ -45,7 +44,7 @@
         "styles.css"
       ],
       "run_at": "document_idle",
-      "all_frames": false
+      "all_frames": true
     }
   ]
 }
