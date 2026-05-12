@@ -9,30 +9,8 @@
 
   window[SCRIPT_INSTANCE_KEY] = true;
 
-  const STORAGE_KEYS = {
-    rate: "youtubeSpeedController.playbackRate",
-    widgetHidden: "youtubeSpeedController.widgetHidden",
-    toastHidden: "youtubeSpeedController.toastHidden",
-    enabled: "youtubeSpeedController.enabled",
-    keyboardEnabled: "youtubeSpeedController.keyboardEnabled",
-    mouseWheelEnabled: "youtubeSpeedController.mouseWheelEnabled",
-    boostEnabled: "youtubeSpeedController.boostEnabled",
-    rememberPerChannel: "youtubeSpeedController.rememberPerChannel",
-    rememberGlobally: "youtubeSpeedController.rememberGlobally",
-    rememberPerSite: "youtubeSpeedController.rememberPerSite",
-    autoApplyPreferredSpeed: "youtubeSpeedController.autoApplyPreferredSpeed",
-    compactMode: "youtubeSpeedController.compactMode",
-    fullscreenOnlyControls: "youtubeSpeedController.fullscreenOnlyControls",
-    themeMode: "youtubeSpeedController.themeMode",
-    startupDefaultSpeed: "youtubeSpeedController.startupDefaultSpeed",
-    shortcuts: "youtubeSpeedController.shortcuts",
-    channelRates: "youtubeSpeedController.channelRates",
-    analytics: "youtubeSpeedController.analytics",
-    sitePolicies: "youtubeSpeedController.sitePolicies",
-    siteAccessMode: "youtubeSpeedController.siteAccessMode",
-    siteAccessList: "youtubeSpeedController.siteAccessList",
-    defaultNativeMode: "youtubeSpeedController.defaultNativeMode"
-  };
+  // Use shared constants from constants.js (loaded before this script)
+  const STORAGE_KEYS = globalThis.YSC_STORAGE_KEYS || {};
 
   const EPSILON = 0.01;
   const SPEED_STEP = 0.25;
@@ -1395,136 +1373,6 @@
     return best;
   };
 
-  const pickYouTubePreviewPosition = (video, vr, ww, wh, obstacles) => {
-    const vw = window.innerWidth || 0;
-    const vh = window.innerHeight || 0;
-    // Add more vertical spacing and edge margins
-    const edge = Math.max(12, Math.min(16, Math.round(vr.width * 0.035)));
-    const pad = FLOATING_COLLISION_PAD + 6; // Extra padding so it never touches CC/timestamps
-    const list = Array.isArray(obstacles) ? obstacles : [];
-    
-    // Right band is the rightmost part where controls usually sit
-    const rightBandLeft = vr.right - Math.max(ww + 96, vr.width * 0.45);
-    const bottomReserve = Math.min(64, Math.max(36, vr.height * 0.25)); // Keep away from bottom progress bar
-    const minLeft = Math.max(edge, vr.left + edge);
-    const maxLeft = Math.max(minLeft, Math.min(vr.right - ww - edge, vw - ww - edge));
-    const minTop = Math.max(edge, vr.top + edge);
-    const maxTop = Math.max(minTop, Math.min(vr.bottom - wh - bottomReserve, vh - wh - edge));
-    
-    // Shift further toward the center-right safely instead of absolute edge
-    const primaryLeft = Math.min(Math.max(vr.right - ww - edge - 12, minLeft), maxLeft);
-
-    // Look further down to catch CC, Watch Later, Queue buttons, and Hover menus
-    const topBandLimit = vr.top + Math.min(140, vr.height * 0.6);
-    const rightControlThreshold = Math.max(vr.left + vr.width * 0.25, rightBandLeft - 24);
-    
-    // YouTube previews almost always have top-right controls (CC, Mute, Watch Later)
-    // that might be hidden via opacity until hover. Hardcode a safe top margin 
-    // to strictly guarantee we never occupy their horizontal row.
-    let topControlBottom = minTop + Math.max(38, Math.min(62, vr.height * 0.3));
-
-    // Detect native YouTube controls at the top right and set topControlBottom below them
-    for (const ob of list) {
-      const nearTop = ob.top <= topBandLimit;
-      const nearRight = ob.right >= rightControlThreshold;
-
-      if (nearTop && nearRight) {
-        topControlBottom = Math.max(topControlBottom, ob.bottom + pad);
-      }
-    }
-
-    const desiredTop = Math.min(Math.max(topControlBottom, minTop), maxTop);
-    
-    // Candidate spots: below top controls, at the bottom right, or shifted left
-    const candidateTops = [
-      desiredTop,
-      Math.min(desiredTop + wh + pad + 12, maxTop), // significantly further down
-      maxTop // Bottom right safe zone
-
-    ];
-    
-    const candidateLefts = [
-      primaryLeft,
-      Math.max(minLeft, primaryLeft - Math.min(48, vr.width * 0.15)), // Shifted slightly center-right
-      Math.max(minLeft, primaryLeft - Math.min(84, vr.width * 0.25))  // Shifted more center
-    ];
-    
-    const seen = new Set();
-    let best = null;
-    let bestScore = Infinity;
-
-    for (const rawLeft of candidateLefts) {
-      for (const rawTop of candidateTops) {
-        const left = Math.min(Math.max(rawLeft, minLeft), maxLeft);
-        const top = Math.min(Math.max(rawTop, minTop), maxTop);
-        const key = `${Math.round(left)}_${Math.round(top)}`;
-
-        if (seen.has(key)) {
-          continue;
-        }
-
-        seen.add(key);
-
-        const slot = {
-          left,
-          top,
-          right: left + ww,
-          bottom: top + wh,
-          id: "yt-preview"
-        };
-        const inflated = inflateRect(slot, pad);
-        
-        // Base penalty for deviating from primary position
-        let score = Math.abs(left - primaryLeft) * 6;
-        
-        // Prefer placing it either directly below top controls or at bottom-right safe zone
-        if (top === maxTop) {
-           score -= 10; // Small bonus for bottom-right fallback
-        } else {
-           score += Math.abs(top - desiredTop) * 3;
-        }
-
-        for (const ob of list) {
-          const hit = overlapArea(inflated, ob);
-
-          if (hit > 0) {
-            const nearRight = ob.right >= rightBandLeft || ob.left >= rightBandLeft;
-            const nearTop = ob.top <= topBandLimit;
-
-            score += hit * (nearRight ? 6 : 3);
-
-            if (nearRight && nearTop) {
-              // Extremely high penalty for overlapping CC or top-right hover icons
-              score += 25000;
-            }
-          }
-        }
-
-        // Never occupy the same horizontal row as top controls
-        if (slot.top < topControlBottom) {
-          score += 35000;
-        }
-
-        if (slot.bottom > vr.bottom - bottomReserve + 10) {
-          score += (slot.bottom - (vr.bottom - bottomReserve + 10)) * ww * 0.5;
-        }
-
-        score += sampleCornerOccupancyPenalty(slot.left, slot.top, ww, wh, video) * 15;
-
-        if (score < bestScore) {
-          bestScore = score;
-          best = slot;
-        }
-      }
-    }
-
-    return best || {
-      left: primaryLeft,
-      top: desiredTop,
-      id: "yt-preview"
-    };
-  };
-
   const applyFloatingPresentation = () => {
     if (!widget || widgetPlacement !== "floating") {
       return;
@@ -2006,6 +1854,8 @@
     widget.classList.remove("ysc-speed-widget--floating");
     widget.classList.remove("ysc-speed-widget--yt-preview");
     widget.classList.remove("ysc-speed-widget--vertical");
+    // Clear any inline display:none left from homepage preview hiding
+    widget.style.display = "";
     widgetPlacement = "youtube";
     resetFloatingHoverState();
     cachedObstacleKey = "";
@@ -2081,14 +1931,13 @@
       return;
     }
 
+    // Override mode: something external changed the rate (YouTube ad, native menu).
+    // Re-apply the user's preferred rate instead of silently saving the external value.
     const changed = Math.abs(preferredRate - changedRate) > EPSILON;
 
-    preferredRate = changedRate;
-    updateWidget(changedRate);
-    savePreferredRate(changedRate);
-
     if (changed) {
-      showSpeedToast(changedRate);
+      setVideoRate(video, preferredRate);
+      updateWidget(preferredRate);
     }
   };
 
@@ -2944,7 +2793,7 @@
     window.addEventListener("keydown", handleKeyboardShortcut, true);
     window.addEventListener("keyup", handleKeyUp, true);
     window.addEventListener("blur", stopTemporaryBoost, true);
-    window.addEventListener("blur", stopSpeedHold, true);
+    window.addEventListener("blur", () => stopSpeedHold(), true);
     window.addEventListener("blur", () => {
       if (widgetPlacement !== "floating") {
         return;
@@ -2971,6 +2820,12 @@
       }, 120);
     });
     window.addEventListener("beforeunload", saveAnalytics);
+    // Also save on tab hide/switch — more reliable than beforeunload for tab closes
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        saveAnalytics();
+      }
+    });
     document.addEventListener("yt-navigate-finish", scheduleRefresh);
     document.addEventListener("yt-player-updated", scheduleRefresh);
     document.addEventListener("enterpictureinpicture", scheduleRefresh, true);
