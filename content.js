@@ -53,6 +53,67 @@
   const FLOATING_WIDGET_FALLBACK_H = 36;
   const FLOATING_EDGE_MARGIN = 10;
   const FLOATING_COLLISION_PAD = 8;
+  const YOUTUBE_COMPACT_CONTAINER_SELECTOR = [
+    "ytd-rich-grid-media",
+    "ytd-rich-item-renderer",
+    "ytd-video-renderer",
+    "ytd-compact-video-renderer",
+    "ytd-grid-video-renderer",
+    "ytd-playlist-video-renderer",
+    "ytd-watch-card-compact-video-renderer",
+    "ytd-reel-item-renderer",
+    "ytd-miniplayer",
+    "ytd-thumbnail",
+    "yt-thumbnail-view-model",
+    "yt-lockup-view-model",
+    "#thumbnail"
+  ].join(",");
+  const YOUTUBE_COMPACT_OBSTACLE_SELECTOR = [
+    ".ytp-chrome-top",
+    ".ytp-gradient-top",
+    ".ytp-chrome-bottom",
+    ".ytp-gradient-bottom",
+    ".ytp-right-controls",
+    ".ytp-left-controls",
+    ".ytp-subtitles-button",
+    ".ytp-settings-button",
+    ".ytp-mute-button",
+    ".ytp-volume-panel",
+    ".ytp-time-display",
+    ".ytp-progress-bar-container",
+    ".ytp-title",
+    ".ytp-cards-button",
+    ".ytp-watch-later-button",
+    ".ytp-ce-element",
+    ".ytp-paid-content-overlay",
+    "ytd-thumbnail-overlay-time-status-renderer",
+    "ytd-thumbnail-overlay-toggle-button-renderer",
+    "ytd-thumbnail-overlay-button-renderer",
+    "ytd-thumbnail-overlay-resume-playback-renderer",
+    "ytd-thumbnail-overlay-now-playing-renderer",
+    "ytd-thumbnail-overlay-bottom-panel-renderer",
+    "ytd-thumbnail-overlay-side-panel-renderer",
+    "ytd-menu-renderer",
+    "ytd-badge-supported-renderer",
+    "ytd-channel-name",
+    "ytd-video-owner-renderer",
+    "yt-icon-button",
+    "#avatar",
+    "button[aria-label*='Watch later' i]",
+    "button[aria-label*='Add to queue' i]",
+    "button[aria-label*='More actions' i]",
+    "button[aria-label*='Subtitles' i]",
+    "button[aria-label*='Closed captions' i]",
+    "button[aria-label*='Volume' i]",
+    "button[aria-label*='Mute' i]",
+    "[aria-label*='Watch later' i]",
+    "[aria-label*='Add to queue' i]",
+    "[aria-label*='More actions' i]",
+    "[aria-label*='Subtitles' i]",
+    "[aria-label*='Closed captions' i]",
+    "[aria-label*='Volume' i]",
+    "[aria-label*='Mute' i]"
+  ].join(",");
   const SPEEDS = Array.from(
     { length: Math.round((MAX_PLAYBACK_RATE - MIN_PLAYBACK_RATE) / SPEED_STEP) + 1 },
     (_, index) => Number((MIN_PLAYBACK_RATE + (index * SPEED_STEP)).toFixed(2))
@@ -798,6 +859,22 @@
       return null;
     }
 
+    const hoveredPlayer = lastPointerVideo?.closest?.(".html5-video-player");
+
+    if (hoveredPlayer && isVideoUsable(lastPointerVideo)) {
+      const rect = lastPointerVideo.getBoundingClientRect();
+      const hoverZone = {
+        left: rect.left - FLOATING_HOVER_EXPAND_PX,
+        top: rect.top - FLOATING_HOVER_EXPAND_PX,
+        right: rect.right + FLOATING_HOVER_EXPAND_PX,
+        bottom: rect.bottom + FLOATING_HOVER_EXPAND_PX
+      };
+
+      if (rect.width > 0 && rect.height > 0 && pointInRect(lastPointerClientX, lastPointerClientY, hoverZone)) {
+        return hoveredPlayer;
+      }
+    }
+
     const players = Array.from(document.querySelectorAll(".html5-video-player"));
 
     return players.find((player) => {
@@ -812,6 +889,70 @@
     const player = getPlayer();
 
     return player?.querySelector("video.html5-main-video, video") || null;
+  };
+
+  const isYouTubeWatchPlayer = (player) => {
+    if (!player || !isYouTubeHost()) {
+      return false;
+    }
+
+    if (player.classList.contains("ytp-miniplayer")) {
+      return false;
+    }
+
+    if (document.fullscreenElement && (document.fullscreenElement === player || document.fullscreenElement.contains(player))) {
+      return true;
+    }
+
+    if (player.id === "movie_player") {
+      return true;
+    }
+
+    if (player.closest("#player-container, #player-theater-container")) {
+      return true;
+    }
+
+    if (location.pathname.startsWith("/shorts") && player.closest("ytd-reel-video-renderer, ytd-shorts, ytd-shorts-player-controls")) {
+      return true;
+    }
+
+    const rect = player.getBoundingClientRect();
+    const wideEnough = rect.width >= Math.min(560, window.innerWidth * 0.48);
+    const tallEnough = rect.height >= Math.min(315, window.innerHeight * 0.36);
+
+    return wideEnough && tallEnough && !player.closest(YOUTUBE_COMPACT_CONTAINER_SELECTOR);
+  };
+
+  const getYouTubeCompactRoot = (video) => {
+    if (!video || !isYouTubeHost()) {
+      return null;
+    }
+
+    return video.closest(YOUTUBE_COMPACT_CONTAINER_SELECTOR)
+      || video.closest(".html5-video-player")
+      || null;
+  };
+
+  const isYouTubeCompactPreview = (video, rect, fullscreenUi = false) => {
+    if (!video || !isYouTubeHost() || fullscreenUi) {
+      return false;
+    }
+
+    const player = video.closest(".html5-video-player");
+
+    if (player && isYouTubeWatchPlayer(player)) {
+      return false;
+    }
+
+    if (getYouTubeCompactRoot(video)?.matches?.(YOUTUBE_COMPACT_CONTAINER_SELECTOR)) {
+      return true;
+    }
+
+    if (!rect?.width || !rect?.height) {
+      return false;
+    }
+
+    return rect.width < 640 || rect.height < 360;
   };
 
   const pickUniversalVideo = () => {
@@ -1026,12 +1167,13 @@
     return video.parentElement || video;
   };
 
-  const gatherObstacleRects = (video, vr) => {
+  const gatherObstacleRects = (video, vr, { compactPreview = false } = {}) => {
     if (!video || !vr?.width) {
       return [];
     }
 
     const root = getPlayerRootForLayout(video);
+    const roots = new Set([root]);
     const out = [];
 
     const push = (r) => {
@@ -1046,7 +1188,9 @@
       out.push(r);
     };
 
-    const sel = [
+    const baseSelectors = [
+      ".ytp-chrome-top",
+      ".ytp-gradient-top",
       ".ytp-chrome-bottom",
       ".ytp-gradient-bottom",
       ".ytp-right-controls",
@@ -1071,10 +1215,21 @@
       ".shaka-bottom-controls",
       ".shaka-text-container",
       "[data-uia*='control' i]"
-    ].join(",");
+    ];
 
-    if (root?.querySelectorAll) {
-      root.querySelectorAll(sel).forEach((el) => {
+    if (compactPreview && isYouTubeHost()) {
+      roots.add(getYouTubeCompactRoot(video));
+      baseSelectors.push(YOUTUBE_COMPACT_OBSTACLE_SELECTOR);
+    }
+
+    const sel = baseSelectors.join(",");
+
+    roots.forEach((scope) => {
+      if (!scope?.querySelectorAll) {
+        return;
+      }
+
+      scope.querySelectorAll(sel).forEach((el) => {
         if (!(el instanceof HTMLElement)) {
           return;
         }
@@ -1097,11 +1252,13 @@
 
         push(el.getBoundingClientRect());
       });
-    }
+    });
 
     push({
       left: vr.left,
-      top: vr.top + vr.height * 0.56,
+      top: compactPreview
+        ? vr.bottom - Math.min(48, Math.max(24, vr.height * 0.24))
+        : vr.top + vr.height * 0.56,
       right: vr.right,
       bottom: vr.bottom
     });
@@ -1238,6 +1395,133 @@
     return best;
   };
 
+  const pickYouTubePreviewPosition = (video, vr, ww, wh, obstacles) => {
+    const vw = window.innerWidth || 0;
+    const vh = window.innerHeight || 0;
+    // Add more vertical spacing and edge margins
+    const edge = Math.max(12, Math.min(16, Math.round(vr.width * 0.035)));
+    const pad = FLOATING_COLLISION_PAD + 6; // Extra padding so it never touches CC/timestamps
+    const list = Array.isArray(obstacles) ? obstacles : [];
+    
+    // Right band is the rightmost part where controls usually sit
+    const rightBandLeft = vr.right - Math.max(ww + 96, vr.width * 0.45);
+    const bottomReserve = Math.min(64, Math.max(36, vr.height * 0.25)); // Keep away from bottom progress bar
+    const minLeft = Math.max(edge, vr.left + edge);
+    const maxLeft = Math.max(minLeft, Math.min(vr.right - ww - edge, vw - ww - edge));
+    const minTop = Math.max(edge, vr.top + edge);
+    const maxTop = Math.max(minTop, Math.min(vr.bottom - wh - bottomReserve, vh - wh - edge));
+    
+    // Shift further toward the center-right safely instead of absolute edge
+    const primaryLeft = Math.min(Math.max(vr.right - ww - edge - 12, minLeft), maxLeft);
+
+    // Look further down to catch CC, Watch Later, Queue buttons, and Hover menus
+    const topBandLimit = vr.top + Math.min(140, vr.height * 0.6);
+    const rightControlThreshold = Math.max(vr.left + vr.width * 0.25, rightBandLeft - 24);
+    
+    let topControlBottom = minTop;
+
+    // Detect native YouTube controls at the top right and set topControlBottom below them
+    for (const ob of list) {
+      const nearTop = ob.top <= topBandLimit;
+      const nearRight = ob.right >= rightControlThreshold;
+
+      if (nearTop && nearRight) {
+        topControlBottom = Math.max(topControlBottom, ob.bottom + pad);
+      }
+    }
+
+    const desiredTop = Math.min(Math.max(topControlBottom, minTop), maxTop);
+    
+    // Candidate spots: below top controls, at the bottom right, or shifted left
+    const candidateTops = [
+      desiredTop,
+      Math.min(desiredTop + wh + pad, maxTop), // further down
+      maxTop, // Bottom right safe zone
+      minTop // Only if no top controls are found
+    ];
+    
+    const candidateLefts = [
+      primaryLeft,
+      Math.max(minLeft, primaryLeft - Math.min(48, vr.width * 0.15)), // Shifted slightly center-right
+      Math.max(minLeft, primaryLeft - Math.min(84, vr.width * 0.25))  // Shifted more center
+    ];
+    
+    const seen = new Set();
+    let best = null;
+    let bestScore = Infinity;
+
+    for (const rawLeft of candidateLefts) {
+      for (const rawTop of candidateTops) {
+        const left = Math.min(Math.max(rawLeft, minLeft), maxLeft);
+        const top = Math.min(Math.max(rawTop, minTop), maxTop);
+        const key = `${Math.round(left)}_${Math.round(top)}`;
+
+        if (seen.has(key)) {
+          continue;
+        }
+
+        seen.add(key);
+
+        const slot = {
+          left,
+          top,
+          right: left + ww,
+          bottom: top + wh,
+          id: "yt-preview"
+        };
+        const inflated = inflateRect(slot, pad);
+        
+        // Base penalty for deviating from primary position
+        let score = Math.abs(left - primaryLeft) * 6;
+        
+        // Prefer placing it either directly below top controls or at bottom-right safe zone
+        if (top === maxTop) {
+           score -= 10; // Small bonus for bottom-right fallback
+        } else {
+           score += Math.abs(top - desiredTop) * 3;
+        }
+
+        for (const ob of list) {
+          const hit = overlapArea(inflated, ob);
+
+          if (hit > 0) {
+            const nearRight = ob.right >= rightBandLeft || ob.left >= rightBandLeft;
+            const nearTop = ob.top <= topBandLimit;
+
+            score += hit * (nearRight ? 6 : 3);
+
+            if (nearRight && nearTop) {
+              // Extremely high penalty for overlapping CC or top-right hover icons
+              score += 25000;
+            }
+          }
+        }
+
+        // Never occupy the same horizontal row as top controls
+        if (slot.top < topControlBottom) {
+          score += 35000;
+        }
+
+        if (slot.bottom > vr.bottom - bottomReserve + 10) {
+          score += (slot.bottom - (vr.bottom - bottomReserve + 10)) * ww * 0.5;
+        }
+
+        score += sampleCornerOccupancyPenalty(slot.left, slot.top, ww, wh, video) * 15;
+
+        if (score < bestScore) {
+          bestScore = score;
+          best = slot;
+        }
+      }
+    }
+
+    return best || {
+      left: primaryLeft,
+      top: desiredTop,
+      id: "yt-preview"
+    };
+  };
+
   const applyFloatingPresentation = () => {
     if (!widget || widgetPlacement !== "floating") {
       return;
@@ -1262,17 +1546,24 @@
       widget.style.left = "";
       widget.style.top = "";
       widget.classList.remove("ysc-speed-widget--vertical");
+      widget.classList.remove("ysc-speed-widget--yt-preview");
       applyFloatingAmbientClass();
       return;
     }
 
+    const youtubePreviewLayout = isYouTubeCompactPreview(video, rect, fullscreenUi);
+    const verticalLayout = !youtubePreviewLayout && rect.height / rect.width >= 1.18;
+
+    widget.classList.toggle("ysc-speed-widget--yt-preview", youtubePreviewLayout);
+    widget.classList.toggle("ysc-speed-widget--vertical", verticalLayout);
+
     const now = performance.now();
     const runHeavy = now - lastFloatingLayoutAt >= FLOATING_LAYOUT_MIN_MS;
     const srcTag = String(video.currentSrc || video.src || "").slice(-48);
-    const obsKey = `${srcTag}_${Math.round(rect.left)}_${Math.round(rect.top)}_${Math.round(rect.width)}_${Math.round(rect.height)}`;
+    const obsKey = `${youtubePreviewLayout ? "yt-preview" : "standard"}_${srcTag}_${Math.round(rect.left)}_${Math.round(rect.top)}_${Math.round(rect.width)}_${Math.round(rect.height)}`;
 
     if (runHeavy || cachedObstacleKey !== obsKey) {
-      cachedObstacleRects = gatherObstacleRects(video, rect);
+      cachedObstacleRects = gatherObstacleRects(video, rect, { compactPreview: youtubePreviewLayout });
       cachedObstacleKey = obsKey;
     }
 
@@ -1282,19 +1573,17 @@
 
     const ww = widget.offsetWidth || FLOATING_WIDGET_FALLBACK_W;
     const wh = widget.offsetHeight || FLOATING_WIDGET_FALLBACK_H;
-    const verticalLayout = rect.height / rect.width >= 1.18;
-
-    widget.classList.toggle("ysc-speed-widget--vertical", verticalLayout);
-
-    const pos = pickBestFloatingPosition(
-      video,
-      rect,
-      ww,
-      wh,
-      fullscreenUi,
-      verticalLayout,
-      cachedObstacleRects
-    );
+    const pos = youtubePreviewLayout
+      ? pickYouTubePreviewPosition(video, rect, ww, wh, cachedObstacleRects)
+      : pickBestFloatingPosition(
+        video,
+        rect,
+        ww,
+        wh,
+        fullscreenUi,
+        verticalLayout,
+        cachedObstacleRects
+      );
 
     widget.style.left = `${Math.round(pos.left)}px`;
     widget.style.top = `${Math.round(pos.top)}px`;
@@ -1696,7 +1985,7 @@
     const player = getPlayer();
     const rightControls = player?.querySelector(".ytp-right-controls");
 
-    if (!rightControls) {
+    if (!rightControls || !isYouTubeWatchPlayer(player)) {
       return false;
     }
 
@@ -1705,6 +1994,8 @@
     }
 
     widget.classList.remove("ysc-speed-widget--floating");
+    widget.classList.remove("ysc-speed-widget--yt-preview");
+    widget.classList.remove("ysc-speed-widget--vertical");
     widgetPlacement = "youtube";
     resetFloatingHoverState();
     cachedObstacleKey = "";
@@ -2550,6 +2841,29 @@
 
       lastPointerVideo = hovered || lastPointerVideo;
       updateFloatingHoverFromClientPoint(lastPointerClientX, lastPointerClientY);
+
+      if (!isYouTubeHost()) {
+        return;
+      }
+
+      const hoveredPlayer = hovered?.closest?.(".html5-video-player");
+
+      if (hoveredPlayer && !isYouTubeWatchPlayer(hoveredPlayer) && widgetPlacement !== "floating") {
+        clearFloatingHideTimer();
+        floatingHoverActive = true;
+        placeFloatingWidget();
+        updateWidget(getCurrentRate());
+        return;
+      }
+
+      if (hoveredPlayer && isYouTubeWatchPlayer(hoveredPlayer) && widgetPlacement !== "youtube") {
+        placeWidget();
+        return;
+      }
+
+      if (widgetPlacement === "floating") {
+        applyFloatingPresentation();
+      }
     });
   };
 
