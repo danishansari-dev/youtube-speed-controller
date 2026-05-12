@@ -14,12 +14,21 @@ const DEFAULT_STORAGE = {
   "youtubeSpeedController.boostEnabled": true,
   "youtubeSpeedController.rememberGlobally": true,
   "youtubeSpeedController.rememberPerSite": true,
+  "youtubeSpeedController.rememberPerChannel": false,
   "youtubeSpeedController.autoApplyPreferredSpeed": true,
+  "youtubeSpeedController.compactMode": false,
+  "youtubeSpeedController.fullscreenOnlyControls": false,
+  "youtubeSpeedController.themeMode": "auto",
   "youtubeSpeedController.defaultNativeMode": "override",
   "youtubeSpeedController.siteAccessMode": "all",
+  "youtubeSpeedController.siteAccessList": [],
   "youtubeSpeedController.startupDefaultSpeed": 1,
   "youtubeSpeedController.playbackRate": 1,
-  "youtubeSpeedController.shortcuts": globalThis.YSC_DEFAULT_SHORTCUTS || {}
+  "youtubeSpeedController.shortcuts": globalThis.YSC_DEFAULT_SHORTCUTS || {},
+  "youtubeSpeedController.channelRates": {},
+  "youtubeSpeedController.sitePolicies": {},
+  "youtubeSpeedController.widgetHidden": false,
+  "youtubeSpeedController.toastHidden": false
 };
 
 let broadcastTimer = 0;
