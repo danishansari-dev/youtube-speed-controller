@@ -1,12 +1,12 @@
 :root {
-  --bg-base: #050505;
-  --bg-surface: #111111;
+  --bg-base: #161618;
+  --bg-surface: #222224;
   --text-main: #f9fafb;
   --text-muted: #9ca3af;
-  --primary: #6366f1;
-  --primary-hover: #8b5cf6;
+  --primary: #ff4b4b;
+  --primary-hover: #ff6b6b;
   --border: rgba(255, 255, 255, 0.08);
-  --glass-bg: rgba(20, 20, 20, 0.4);
+  --glass-bg: rgba(34, 34, 36, 0.6);
   --glass-border: rgba(255, 255, 255, 0.05);
 }
 
@@ -31,7 +31,7 @@ h1, h2, h3, h4 {
 
 /* Typography */
 .gradient-text {
-  background: linear-gradient(135deg, #a78bfa, #6366f1, #3b82f6);
+  background: linear-gradient(135deg, #ff8a8a, #ff4b4b, #e60000);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -50,7 +50,7 @@ h1, h2, h3, h4 {
   left: 20vw;
   width: 60vw;
   height: 60vh;
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(5, 5, 5, 0) 70%);
+  background: radial-gradient(circle, rgba(255, 75, 75, 0.15) 0%, rgba(22, 22, 24, 0) 70%);
   z-index: -1;
   pointer-events: none;
 }
@@ -68,7 +68,7 @@ h1, h2, h3, h4 {
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
   z-index: 100;
-  background: rgba(5, 5, 5, 0.7);
+  background: rgba(22, 22, 24, 0.7);
 }
 
 .logo {
@@ -159,11 +159,11 @@ h1, h2, h3, h4 {
 .btn-primary {
   background: linear-gradient(135deg, var(--primary), var(--primary-hover));
   color: white;
-  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 4px 15px rgba(255, 75, 75, 0.3);
 }
 
 .btn-primary:hover {
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+  box-shadow: 0 6px 20px rgba(255, 75, 75, 0.5);
   transform: translateY(-2px);
 }
 
@@ -270,7 +270,7 @@ h1, h2, h3, h4 {
   left: var(--x, 0);
   width: 300px;
   height: 300px;
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(255, 75, 75, 0.15) 0%, transparent 70%);
   transform: translate(-50%, -50%);
   opacity: 0;
   transition: opacity 0.3s;
@@ -285,13 +285,13 @@ h1, h2, h3, h4 {
   width: 48px;
   height: 48px;
   border-radius: 12px;
-  background: rgba(99, 102, 241, 0.1);
+  background: rgba(255, 75, 75, 0.1);
   color: var(--primary);
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 1.5rem;
-  border: 1px solid rgba(99, 102, 241, 0.2);
+  border: 1px solid rgba(255, 75, 75, 0.2);
 }
 
 .card h3 {
