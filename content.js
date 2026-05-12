@@ -847,6 +847,20 @@
       return null;
     }
 
+    // On watch pages, prioritize the main movie player directly
+    // This ensures detection works even before the user moves their mouse
+    if (location.pathname === "/watch" || location.pathname.startsWith("/shorts")) {
+      const mainPlayer = document.getElementById("movie_player");
+
+      if (mainPlayer) {
+        const rect = mainPlayer.getBoundingClientRect();
+
+        if (rect.width > 0 && rect.height > 0) {
+          return mainPlayer;
+        }
+      }
+    }
+
     const hoveredPlayer = lastPointerVideo?.closest?.(".html5-video-player");
 
     if (hoveredPlayer && isVideoUsable(lastPointerVideo)) {
